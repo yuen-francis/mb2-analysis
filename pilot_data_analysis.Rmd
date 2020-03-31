@@ -134,7 +134,7 @@ Descriptives
 
 ```{r}
 d %>%
-  group_by(lab, subid) %>%
+  group_by(lab, experiment, subid) %>%
   summarise(age = mean(age)) %>%
   summarise(n = n(), 
             age = mean(age)/30.25) %>%
