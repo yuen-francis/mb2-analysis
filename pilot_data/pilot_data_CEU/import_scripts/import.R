@@ -84,7 +84,7 @@ peekds::validate_table(df_table = aoi_regions,
 write_csv(aoi_regions, here(lab_dir, "processed_data/aoi_regions.csv"))
 
 # xy_data
-# xy_data_id, subject_id, trial_id, x, y, t
+# xy_data_id, subject_id, trial_id, x, y, t, point_of_disambiguation
 
 # trials
 # trial_id, aoi_region, dataset, lab_trial_id, distractor_image, distractor_label, 
@@ -98,6 +98,7 @@ trials <- filter(d, grepl("FAM", d$video_name),
   summarise(firsttime = min(time)) %>%
   mutate(trial_num = rank(firsttime),
          condition = substr(lab_trial_id, 5, 6),
+         experiment_num = "pilot_1a",
          aoi_region_id = 0,
          dataset_id = 5,
          distractor_image = "distractor",
@@ -105,7 +106,7 @@ trials <- filter(d, grepl("FAM", d$video_name),
          distractor_id = "distractor_id",
          target_id = "target_id",
          full_phrase = NA,
-         point_of_disambiguation = pod,
+         point_of_disambiguation = pod_pilot_1a,
          target_image = "target", 
          target_label = "target", 
          target_side = ifelse(str_sub(condition, start = 2, end = 2) == "L", 
@@ -132,7 +133,7 @@ xy_data <- tibble(lab_subject_id = d$lab_subject_id,
   mutate(xy_data_id = 0:(n() - 1)) %>%
   left_join(trials) %>%
   left_join(subjects) %>%
-  select(xy_data_id, subject_id, trial_id, x, y, t) %>%
+  select(xy_data_id, subject_id, trial_id, x, y, t, point_of_disambiguation) %>%
   center_time_on_pod() %>%
   xy_trim(datasets)
 

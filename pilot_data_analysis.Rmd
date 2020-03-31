@@ -46,8 +46,6 @@ for (lab in labs) {
 
 ```{r}
 labs <- dir(here::here("pilot_data"))
-labs = labs[!grepl("1b", labs)]
-labs = append(labs, "pilot_1b_copenhagen")
 
 d <- labs %>%
   map_df(function(lab) {
@@ -63,7 +61,6 @@ d <- labs %>%
     left_join(aoi_data, subjects) %>%
       left_join(trials) %>%
       left_join(datasets) %>%
-      mutate(experiment_num = ifelse(dataset_id < 7, "1a", "1b")) %>%
       select(lab_subject_id, lab_dataset_id, lab_trial_id, trial_id, 
              age, t, aoi, trial_num, error, experiment_num) %>%
       rename(subid = lab_subject_id, 
@@ -75,30 +72,34 @@ d <- labs %>%
 # Exclusions
 
 ```{r}
+d$experiment = ifelse(grepl("1a", d$experiment_num), "1a", "1b")
+
 # exclude subject marked with any error and/or less than 8 trials
 d <- d %>% 
-  group_by(lab, subid) %>%
+  group_by(lab, subid, experiment) %>%
   mutate(error_subj = any(error)) %>%
       exclude_by(quo(error_subj), quiet=FALSE) 
 
-# exclude trials under 35s (which are not complete trials)
+# exclude trials under 32s (which are not complete trials)
+# changed from 35s to 32 after pilot 1b because no_outcome
+# trials are shorter
 d <- ungroup(d) %>% 
-  group_by(lab, trial_id, subid) %>%
+  group_by(lab, trial_id, subid, experiment) %>%
   mutate(time_range = (max(t) - min(t))/1000) %>%
-          exclude_by(quo(time_range <= 35), quiet=FALSE)
+          exclude_by(quo(time_range <= 32), quiet=FALSE)
 
 # print trial time ranges by lab
 ungroup(d) %>%
-  group_by(lab) %>% 
+  group_by(lab, experiment) %>% 
   summarise(shortest_trial=min(time_range),
             longest_trial=max(time_range)) %>%
   kable(digits=2)
 
-# exclude subjects which did not complete all 8 trials
+# exclude subjects who did not complete 7/8 trials
 d <- ungroup(d) %>% 
-  group_by(lab, subid) %>%
+  group_by(lab, subid, experiment) %>%
   mutate(trials_completed = length(unique(trial_id))) %>%
-            exclude_by(quo(trials_completed < 8),quiet=FALSE)
+            exclude_by(quo(trials_completed < 7),quiet=FALSE)
 
 ```
 
@@ -159,15 +160,16 @@ Summary across anticipation window.
 ```{r}
 ms <- d %>%
   filter(t > -4000, t < 120) %>%
-  group_by(lab, subid, trial_num) %>%
+  group_by(lab, subid, trial_num, experiment_num) %>%
   summarise(target = mean(aoi == "target", na.rm = TRUE)) %>%
-  group_by(trial_num) %>%
+  group_by(trial_num, experiment_num) %>%
   langcog::multi_boot_standard(col = "target", na.rm = TRUE)
 
 
 ggplot(ms, aes(x = trial_num, y = mean)) +
   geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper)) + 
-  geom_line()
+  geom_line() + 
+  facet_grid(. ~ experiment_num)
 ```
   
    
@@ -176,7 +178,7 @@ Binned for cleaner curves
 ```{r}
 ms <- d %>%
   mutate(block = ifelse(trial_num < 5, "Trials 1-4", "Trials 5-8")) %>%
-  group_by(t, block) %>%
+  group_by(t, block, experiment_num) %>%
   summarise(target = mean(aoi == "target", na.rm = TRUE),
             distractor = mean(aoi == "distractor", na.rm = TRUE)) %>%
   gather(region, looking, target, distractor) 
@@ -194,7 +196,7 @@ ggplot(ms, aes(x = t, y = looking, col = region)) +
   xlab("Time (msec)") + 
   ylab("Proportion gaze in AOI") + 
   theme(legend.position = "bottom") + 
-  facet_wrap(~block)
+  facet_wrap(experiment_num~block)
 ```
 
 And by lab:
@@ -202,7 +204,7 @@ And by lab:
 ```{r}
 ms <- d %>%
   mutate(block = ifelse(trial_num < 5, 1, 2)) %>%
-  group_by(t, lab, block) %>%
+  group_by(t, lab, block, experiment_num) %>%
   summarise(target = mean(aoi == "target", na.rm = TRUE),
             distractor = mean(aoi == "distractor", na.rm = TRUE)) %>%
   gather(region, looking, target, distractor) 
@@ -212,7 +214,7 @@ ggplot(ms, aes(x = t, y = looking, col = region)) +
   # geom_smooth(span = 2, se = FALSE) + 
   xlim(-4000 + 120, 4000 + 120) + 
   geom_vline(xintercept = 120, col = "red", lty = 2) +
-  facet_grid(lab~block)
+  facet_grid(lab~block + experiment_num)
 ```
 
 # Main analysis 1: First anticipatory look

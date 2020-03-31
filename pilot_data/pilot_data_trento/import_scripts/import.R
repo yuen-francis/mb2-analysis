@@ -72,12 +72,13 @@ trials <- filter(d, grepl("FAM", d$MediaName),
          lab_subject_id = ParticipantName) %>%
   mutate(trial_num = rank(firsttime),
          condition = substr(lab_trial_id, 5, 6),
+         experiment_num = "pilot_1a",
          aoi_region_id = 0,
          dataset_id = 1,
          distractor_image = "distractor",
          distractor_label = "distractor",
          full_phrase = NA,
-         point_of_disambiguation = pod,
+         point_of_disambiguation = pod_pilot_1a,
          target_image = "target", 
          target_label = "target", 
          target_side = ifelse(str_sub(condition, start = 2, end = 2) == "L", 
@@ -108,7 +109,7 @@ xy_data <- tibble(lab_subject_id = d$ParticipantName,
   mutate(xy_data_id = 0:(n() - 1)) %>%
   left_join(trials) %>%
   left_join(subjects) %>%
-  select(xy_data_id, subject_id, trial_id, x, y, t) %>%
+  select(xy_data_id, subject_id, trial_id, x, y, t, point_of_disambiguation) %>%
   center_time_on_pod() %>%
   xy_trim(datasets)
 
