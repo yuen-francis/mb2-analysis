@@ -32,11 +32,12 @@ Pilot data analysis for MB2.
 We can re-preprocess all of our data, this is set not to evaluate by default. In order to do this, you will need to register with Eyelink to get their binary package and then install `edfR`.
 
 ```{r, eval=FALSE}
+# This part does not reflect the refactoring of the folders yet, need to be modified and checked by someone that has access to Eyelink license
 labs <- dir(here::here("pilot_data"))
 
 for (lab in labs) {
   print(lab)
-  source(here::here("pilot_data", lab, "import_scripts", "import.R"))
+  source(here::here("pilot_data/pilot 1", lab, "import_scripts", "import.R"))
 }
 
 ```
@@ -45,18 +46,19 @@ for (lab in labs) {
 # File reading
 
 ```{r}
-labs <- dir(here::here("pilot_data"))
+labs_1 <- dir(here::here("pilot_data/pilot 1"))
+labs_1b <- dir(here::here("pilot_data/pilot 1b"))
 
-d <- labs %>%
-  map_df(function(lab) {
-    aoi_data <- read_csv(here(paste0("pilot_data/",
-                                     lab,"/processed_data/aoi_data.csv"))) 
-    subjects <- read_csv(here(paste0("pilot_data/",
-                                     lab,"/processed_data/subjects.csv"))) 
-    trials <- read_csv(here(paste0("pilot_data/",
-                                   lab,"/processed_data/trials.csv"))) 
-    datasets <- read_csv(here(paste0("pilot_data/",
-                                     lab,"/processed_data/datasets.csv")))
+d1 <- labs_1 %>%
+  map_df(function(labs_1) {
+    aoi_data <- read_csv(here(paste0("pilot_data/pilot 1/",
+                                     labs_1,"/processed_data/aoi_data.csv"))) 
+    subjects <- read_csv(here(paste0("pilot_data/pilot 1/",
+                                     labs_1,"/processed_data/subjects.csv"))) 
+    trials <- read_csv(here(paste0("pilot_data/pilot 1/",
+                                   labs_1,"/processed_data/trials.csv"))) 
+    datasets <- read_csv(here(paste0("pilot_data/pilot 1/",
+                                     labs_1,"/processed_data/datasets.csv")))
     
     left_join(aoi_data, subjects) %>%
       left_join(trials) %>%
@@ -67,6 +69,29 @@ d <- labs %>%
              lab = lab_dataset_id, 
              stimulus = lab_trial_id)
   })
+d2 <- labs_1b %>%
+  map_df(function(labs_1b) {
+    aoi_data <- read_csv(here(paste0("pilot_data/pilot 1b/",
+                                     labs_1b,"/processed_data/aoi_data.csv"))) 
+    subjects <- read_csv(here(paste0("pilot_data/pilot 1b/",
+                                     labs_1b,"/processed_data/subjects.csv"))) 
+    trials <- read_csv(here(paste0("pilot_data/pilot 1b/",
+                                   labs_1b,"/processed_data/trials.csv"))) 
+    datasets <- read_csv(here(paste0("pilot_data/pilot 1b/",
+                                     labs_1b,"/processed_data/datasets.csv")))
+    
+    left_join(aoi_data, subjects) %>%
+      left_join(trials) %>%
+      left_join(datasets) %>%
+      select(lab_subject_id, lab_dataset_id, lab_trial_id, trial_id, 
+             age, t, aoi, trial_num, error, experiment_num) %>%
+      rename(subid = lab_subject_id, 
+             lab = lab_dataset_id, 
+             stimulus = lab_trial_id)
+  })
+
+d <- d1 %>%
+  rbind(d2)
 ```
 
 # Exclusions
